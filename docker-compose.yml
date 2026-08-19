@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: personal_ai_postgres
+    environment:
+      POSTGRES_DB: personal_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: personal_ai_redis
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    container_name: personal_ai_app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/personal_ai
+      REDIS_URL: redis://redis:6379/0
+      WHATSAPP_VERIFY_TOKEN: change-me
+      META_APP_SECRET: change-me
+      WHATSAPP_ACCESS_TOKEN: change-me
+      PHONE_NUMBER_ID: "1234567890"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+
+  celery_worker:
+    build: .
+    container_name: personal_ai_worker
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/personal_ai
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - postgres
+
+  celery_beat:
+    build: .
+    container_name: personal_ai_beat
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/personal_ai
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
