@@ -1,10 +1,12 @@
 .env
+.env.local
 __pycache__/
+*.py[cod]
 .pytest_cache/
-*.pyc
-*.pyo
-*.pyd
 .venv/
 venv/
-.env.local
 .DS_Store
+# local database (your tasks and messages)
+*.db
+*.db-wal
+*.db-shm
