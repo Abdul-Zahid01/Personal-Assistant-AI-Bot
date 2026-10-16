@@ -95,29 +95,31 @@ async def test_upgrading_keeps_every_row_and_link(tmp_path):
     con.close()
 
 
-async def test_legacy_database_without_history_is_recognised_and_upgraded(tmp_path):
+@pytest.mark.parametrize("old_revision", ["0001", "0002", "0003"])
+async def test_legacy_database_without_history_is_recognised_and_upgraded(tmp_path, old_revision):
+    """Databases made before migrations were tracked (create_all era): same schema as some revision, no history."""
+    import asyncio
     import sqlite3
 
-    from sqlalchemy import Table
-
-    from app.db.migrate import prepare_database
+    from app.db.migrate import alembic_config, prepare_database
     from app.db.session import make_engine
 
-    url = f"sqlite+aiosqlite:///{tmp_path / 'legacy.db'}"
+    db = tmp_path / "legacy.db"
+    url = f"sqlite+aiosqlite:///{db}"
+    await asyncio.to_thread(command.upgrade, alembic_config(url), old_revision)
+    con = sqlite3.connect(db)
+    con.execute("DROP TABLE alembic_version")  # no history, like a database made by the old create_all
+    con.commit()
+    con.close()
+
     engine = make_engine(url)
-    old_tables = [t for name, t in Base.metadata.tables.items() if name not in ("routines", "routine_runs")]
-    async with engine.begin() as conn:  # what create_all produced before routines existed
-        await conn.run_sync(lambda c: [t.create(c) if not isinstance(t, Table) or t.name != "tasks" else None for t in old_tables])
-        await conn.exec_driver_sql(
-            "CREATE TABLE tasks (id VARCHAR(32) PRIMARY KEY, title VARCHAR(255), notes TEXT, kind VARCHAR(16), status VARCHAR(16), "
-            "priority VARCHAR(2), estimate_min INTEGER, actual_min INTEGER, due_at DATETIME, category VARCHAR(64), "
-            "recurrence VARCHAR(16), created_at DATETIME, updated_at DATETIME, completed_at DATETIME)")
     assert await prepare_database(engine, url) == "upgraded"
     engine = make_engine(url)
     assert await prepare_database(engine, url) == "up to date"
     await engine.dispose()
-    con = sqlite3.connect(tmp_path / "legacy.db")
-    assert {"started_at", "routine_id"} <= {r[1] for r in con.execute("pragma table_info(tasks)")}
+    con = sqlite3.connect(db)
+    assert {"started_at", "routine_id", "remind_before_min"} <= {r[1] for r in con.execute("pragma table_info(tasks)")}
+    assert "pinned" in {r[1] for r in con.execute("pragma table_info(time_blocks)")}
     con.close()
 
 

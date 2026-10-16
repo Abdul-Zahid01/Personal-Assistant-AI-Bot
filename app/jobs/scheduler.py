@@ -60,7 +60,7 @@ class Scheduler:
             created = await RoutineService(session, prefs).materialize_upcoming(now)
             await session.commit()
         if created:
-            self.c.schedule_calendar_sync()
+            self.c.after_change()
 
     async def _calendar(self, now: datetime) -> None:
         await self.c.sync_calendar()
@@ -140,7 +140,7 @@ class Scheduler:
             if await self.c.notifier.send(text, None):
                 await put_internal(session, "last_brief_date", today.isoformat())
                 await session.commit()
-        self.c.schedule_calendar_sync()
+        self.c.after_change()
 
     async def evening_review(self, now: datetime) -> None:
         async with self.c.session_factory() as session:
@@ -160,4 +160,4 @@ class Scheduler:
             if await self.c.notifier.send(review.text, buttons):
                 await put_internal(session, "last_review_date", today.isoformat())
                 await session.commit()
-        self.c.schedule_calendar_sync()
+        self.c.after_change()

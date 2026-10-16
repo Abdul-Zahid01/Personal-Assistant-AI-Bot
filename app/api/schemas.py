@@ -46,6 +46,7 @@ class TaskPatch(BaseModel):
     category: str | None = None
     recurrence: str | None = None
     status: str | None = None
+    remind_before_min: int | None = None
 
 
 class CompleteIn(BaseModel):
@@ -100,5 +101,5 @@ def task_out(t: Task) -> dict[str, Any]:
         "due_at": t.due_at.isoformat() if t.due_at else None,
         "completed_at": t.completed_at.isoformat() if t.completed_at else None,
         "started_at": t.started_at.isoformat() if t.started_at else None,
-        "routine_id": t.routine_id,
+        "routine_id": t.routine_id, "remind_before_min": t.remind_before_min,
     }

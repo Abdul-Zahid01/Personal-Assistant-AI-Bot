@@ -22,6 +22,7 @@ from app.config import Settings
 from app.db.migrate import prepare_database
 from app.db.session import make_engine, make_session_factory
 from app.domain.timeutil import get_tz, utcnow
+from app.events import EventBus
 from app.integrations.google_calendar import GoogleCalendar
 from app.services.calendar_sync import reconcile
 from app.services.planning import CalendarPort, PlanningService
@@ -54,6 +55,7 @@ class Container:
         self.calendar = calendar
         self.clock = clock
         self.push = push
+        self.bus = EventBus()
         self.tz: ZoneInfo = get_tz(settings.TIMEZONE)
         self.chat_lock = asyncio.Lock()
         self.assistant = Assistant(self)
@@ -85,8 +87,9 @@ class Container:
             log.warning("Calendar sync failed: %s", exc)
             return 0
 
-    def schedule_calendar_sync(self) -> None:
-        """Fire-and-forget sync after a change; collapses bursts into one extra run."""
+    def after_change(self) -> None:
+        """Call after any data change: tells open tabs to refresh and syncs the calendar (fire-and-forget)."""
+        self.bus.publish("changed")
         if self.calendar is None:
             return
         if self._sync_task is not None and not self._sync_task.done():
@@ -112,6 +115,7 @@ class Container:
             log.info("Database: %s", result)
 
     async def close(self) -> None:
+        self.bus.close()
         if self._sync_task is not None and not self._sync_task.done():
             self._sync_task.cancel()
         if self.telegram is not None:
@@ -143,5 +147,7 @@ def build_container(settings: Settings, **overrides) -> Container:
         raise TypeError(f"Unexpected overrides: {', '.join(overrides)}")
 
     container = Container(settings, engine, session_factory, llm, notifier, telegram, calendar, clock, push)
+    if isinstance(notifier, Notifier):
+        notifier.bus = container.bus
     holder["c"] = container
     return container

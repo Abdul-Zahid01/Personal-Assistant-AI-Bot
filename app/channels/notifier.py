@@ -37,6 +37,7 @@ class Notifier:
         self.clock = clock
         self.telegram = telegram if telegram and telegram.configured else None
         self.push = push
+        self.bus = None  # set by the container: live "a reminder arrived" events for open tabs
 
     async def send(self, text: str, buttons: list[Button] | None = None) -> bool:
         if self.telegram is not None:
@@ -46,11 +47,14 @@ class Notifier:
                 log.warning("Telegram delivery failed: %s", exc)
                 return False
         async with self.session_factory() as session:
-            session.add(Message(
+            msg = Message(
                 role="assistant", content=text, channel="proactive", created_at=self.clock(),
                 buttons=[b.as_pair() for b in buttons] if buttons else None,
-            ))
+            )
+            session.add(msg)
             await session.commit()
+        if self.bus is not None:
+            self.bus.publish("message", id=msg.id)
         if self.push is not None:  # best effort: the message is already safely recorded
             try:
                 await self.push.send(text, buttons)

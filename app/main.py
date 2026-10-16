@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import integrations, routes
+from app.api import calendar, integrations, routes
 from app.channels.telegram import TelegramPoller
 from app.config import Settings, get_settings
 from app.container import Container, build_container
@@ -31,6 +31,15 @@ async def supervise(name: str, factory: Callable[[], Awaitable[None]]) -> None:
         except Exception:
             log.exception("Background task '%s' crashed; restarting in 5s", name)
             await asyncio.sleep(5)
+
+
+class RevalidatingStatic(StaticFiles):
+    """Browsers must check for a newer app.js/app.css on each load (a cheap 304 when nothing changed)."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def create_app(settings: Settings | None = None, container: Container | None = None) -> FastAPI:
@@ -61,6 +70,8 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     app.include_router(routes.router)
     app.include_router(integrations.router)
     app.include_router(integrations.callbacks)
+    app.include_router(calendar.router)
+    app.include_router(calendar.stream_router)
 
     no_cache = {"Cache-Control": "no-cache"}
 
@@ -77,7 +88,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     async def manifest() -> FileResponse:
         return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json", headers=no_cache)
 
-    app.mount("/static", StaticFiles(directory=STATIC), name="static")
+    app.mount("/static", RevalidatingStatic(directory=STATIC), name="static")
 
     return app
 

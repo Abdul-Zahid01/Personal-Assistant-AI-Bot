@@ -53,7 +53,7 @@ class Assistant:
                 session.add(Message(role="assistant", content=reply.text, channel=channel, created_at=self.c.now(),
                                     buttons=[b.as_pair() for b in reply.buttons] or None))
                 await session.commit()
-        self.c.schedule_calendar_sync()
+        self.c.after_change()
         return reply
 
     async def _loop(self, ctx: ToolContext, system: str, msgs: list[ChatMessage]) -> Reply:

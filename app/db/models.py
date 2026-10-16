@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Index, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, UTCDateTime
@@ -41,6 +41,8 @@ class Task(Base):
     started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)  # when you pressed Start
     # Set on the daily copies created from a routine (gym, lunch, call mom...).
     routine_id: Mapped[str | None] = mapped_column(ForeignKey("routines.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Minutes before the start/deadline to notify; None = use the default from preferences.
+    remind_before_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Routine(Base):
@@ -84,6 +86,8 @@ class TimeBlock(Base):
     end_at: Mapped[datetime] = mapped_column(UTCDateTime)
     status: Mapped[str] = mapped_column(String(12), default="PLANNED")  # PLANNED | DONE | SKIPPED | CANCELLED
     reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Placed by you (drag-and-drop): the auto-planner keeps it where it is and plans around it.
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     calendar_event_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     # A block needs a calendar write when synced_at is missing or older than updated_at.
     synced_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
