@@ -54,6 +54,7 @@ class TaskService:
         category: str | None = None,
         recurrence: str | None = None,
         routine_id: str | None = None,
+        remind_before_min: int | None = None,
     ) -> Task:
         title = (title or "").strip()
         if not title:
@@ -73,6 +74,7 @@ class TaskService:
             title=title[:255], notes=notes or None, kind=kind, status="TODO", priority=priority,
             estimate_min=estimate_min, due_at=due_at, category=(category or None), recurrence=recurrence,
             created_at=now, updated_at=now, routine_id=routine_id,
+            remind_before_min=self._lead(remind_before_min),
         )
         self.s.add(task)
         await self.s.flush()
@@ -86,6 +88,8 @@ class TaskService:
                 if not str(value or "").strip():
                     raise TaskError("The title can't be empty.")
                 task.title, resched = str(value).strip()[:255], True
+                for block in await self._blocks(task.id, statuses=("PLANNED",)):
+                    block.title, block.updated_at = task.title, now  # keep the calendar (and Google) in step
             elif key == "notes":
                 task.notes = value or None
             elif key == "due_at":
@@ -95,6 +99,8 @@ class TaskService:
                 resched = True
             elif key == "priority":
                 task.priority = self._choose(value, PRIORITIES, "priority", "P3")
+            elif key == "remind_before_min":
+                task.remind_before_min, resched = self._lead(value), True
             elif key == "category":
                 task.category = value or None
             elif key == "kind":
@@ -244,7 +250,8 @@ class TaskService:
     async def _sync_schedule(self, task: Task, now: datetime) -> None:
         """(Re)build the reminders and the calendar slot implied by the task's current kind/time."""
         await self._cancel_reminders(task.id, SCHEDULE_REMINDER_KINDS)
-        lead = timedelta(minutes=int(self.prefs["deadline_lead_min"]))
+        custom = task.remind_before_min  # per-item choice beats the defaults in preferences
+        lead = timedelta(minutes=custom if custom is not None else int(self.prefs["deadline_lead_min"]))
         due = task.due_at
 
         def add(kind: str, fire_at: datetime, text: str, every: int | None = None, repeats: int = 0) -> None:
@@ -253,13 +260,15 @@ class TaskService:
 
         if task.kind == "REMINDER":
             if due is not None:
-                add("REMINDER", max(due, now), f"⏰ Reminder: {task.title}")
+                early = timedelta(minutes=custom or 0)
+                text = f"⏰ Reminder: {task.title}" + (f" (at {clock(due, self.tz)})" if custom else "")
+                add("REMINDER", max(due - early, now), text)
             else:
                 every = int(self.prefs["nag_interval_min"])
                 add("NAG", now + timedelta(minutes=every), f"🔔 Still pending: {task.title}", every,
                     int(self.prefs["nag_max"]) - 1)
         elif task.kind == "EVENT" and due is not None:
-            event_lead = timedelta(minutes=int(self.prefs.get("event_lead_min", 0)))
+            event_lead = timedelta(minutes=custom if custom is not None else int(self.prefs.get("event_lead_min", 0)))
             end = due + timedelta(minutes=task.estimate_min)
             if event_lead and due - event_lead > now:
                 add("EVENT_START", due - event_lead, f"📅 Starting soon: {task.title} at {clock(due, self.tz)}")
@@ -290,6 +299,18 @@ class TaskService:
         if v not in allowed:
             raise TaskError(f"{label} must be one of {', '.join(allowed)}.")
         return v
+
+    @staticmethod
+    def _lead(value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            n = int(value)
+        except (TypeError, ValueError):
+            raise TaskError("Reminder time must be a number of minutes.") from None
+        if not 0 <= n <= 1440:
+            raise TaskError("Reminder time must be between 0 and 1440 minutes before.")
+        return n
 
     @staticmethod
     def _recurrence(value: Any) -> str | None:

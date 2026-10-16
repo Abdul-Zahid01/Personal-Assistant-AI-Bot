@@ -37,12 +37,16 @@ def _inspect(conn: Connection) -> tuple[set[str], set[str], str | None]:
     insp = inspect(conn)
     tables = set(insp.get_table_names())
     task_cols = {c["name"] for c in insp.get_columns("tasks")} if "tasks" in tables else set()
+    if "time_blocks" in tables:
+        task_cols |= {f"time_blocks.{c['name']}" for c in insp.get_columns("time_blocks")}
     version = conn.execute(text("SELECT version_num FROM alembic_version")).scalar() if "alembic_version" in tables else None
     return tables, task_cols, version
 
 
 def _legacy_revision(tables: set[str], task_cols: set[str]) -> str:
     """Databases made by create_all before migrations were tracked: work out which schema they have."""
+    if "time_blocks.pinned" in task_cols and "remind_before_min" in task_cols:
+        return "0004"
     if "routines" in tables and "started_at" in task_cols:
         return "0003"
     if "push_subscriptions" in tables:

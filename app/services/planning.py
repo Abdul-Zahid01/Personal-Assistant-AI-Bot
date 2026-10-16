@@ -8,7 +8,7 @@ from datetime import date, datetime
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Reminder, Task, TimeBlock
@@ -53,6 +53,11 @@ class PlanningService:
         tasks = (await self.s.execute(
             select(Task).where(Task.kind == "TASK", Task.status.in_(OPEN_STATUSES))
         )).scalars().all()
+        # tasks you placed yourself (pinned, still ahead) are already scheduled: don't plan them again
+        pinned_ids = set((await self.s.execute(
+            select(TimeBlock.task_id).where(TimeBlock.pinned.is_(True), TimeBlock.status == "PLANNED", TimeBlock.end_at > now)
+        )).scalars().all())
+        tasks = [t for t in tasks if t.id not in pinned_ids]
 
         factors = await self._calibration()
         plan_tasks = [
@@ -78,7 +83,7 @@ class PlanningService:
 
         old = (await self.s.execute(
             select(TimeBlock).where(
-                TimeBlock.kind == "WORK", TimeBlock.status == "PLANNED",
+                TimeBlock.kind == "WORK", TimeBlock.status == "PLANNED", TimeBlock.pinned.is_(False),
                 TimeBlock.start_at < end, TimeBlock.end_at > start, TimeBlock.end_at > now,
             )
         )).scalars().all()
@@ -131,8 +136,8 @@ class PlanningService:
 
     # ------------------------------------------------------------------ internals
     async def _busy(self, start: datetime, end: datetime) -> tuple[list[Interval], list[str]]:
-        events = (await self.s.execute(
-            select(TimeBlock).where(TimeBlock.kind == "EVENT", TimeBlock.status == "PLANNED",
+        events = (await self.s.execute(  # fixed events + work you placed yourself
+            select(TimeBlock).where(or_(TimeBlock.kind == "EVENT", TimeBlock.pinned.is_(True)), TimeBlock.status == "PLANNED",
                                     TimeBlock.start_at < end, TimeBlock.end_at > start)
         )).scalars().all()
         busy = [Interval(e.start_at, e.end_at) for e in events]

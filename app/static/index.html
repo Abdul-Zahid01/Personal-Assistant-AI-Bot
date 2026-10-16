@@ -11,198 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<style>
-  :root {
-    --text: #152038; --muted: #5a6683; --faint: rgba(21, 32, 56, .08);
-    --glass: rgba(255, 255, 255, .52); --glass-hi: rgba(255, 255, 255, .78); --glass-solid: #f4f6fc;
-    --edge: rgba(255, 255, 255, .75); --edge-low: rgba(21, 32, 56, .10);
-    --shadow: 0 12px 34px rgba(36, 48, 110, .14);
-    --sheen: rgba(255, 255, 255, .55);
-    --accent: #4f6bff; --accent-2: #8a5cff; --on-accent: #fff;
-    --work: #4f6bff; --event: #9b5cff; --routine: #14a37f; --reminder: #f08a24; --late: #e5484d; --over: #f5a524;
-    --p1: #e5484d; --p2: #f5a524; --p3: #e9c21b; --p4: #98a2b3;
-    --bg1: #dfe7ff; --bg2: #f6e8ff; --bg3: #d9fbf1; --base: #eef2fb;
-    --r: 20px; --r-sm: 12px;
-    --tabbar: 0px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text: #e9edf7; --muted: #9aa5c0; --faint: rgba(255, 255, 255, .07);
-      --glass: rgba(24, 30, 48, .55); --glass-hi: rgba(36, 44, 68, .78); --glass-solid: #1a2032;
-      --edge: rgba(255, 255, 255, .14); --edge-low: rgba(255, 255, 255, .08);
-      --shadow: 0 14px 40px rgba(0, 0, 0, .45); --sheen: rgba(255, 255, 255, .10);
-      --accent: #7d92ff; --accent-2: #a98bff; --on-accent: #0d1120;
-      --bg1: #1d2a5a; --bg2: #3a1f5c; --bg3: #0f3d3a; --base: #0b0f1c;
-    }
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; }
-  body { background: var(--base); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-  button, input, select { font: inherit; color: inherit; }
-
-  /* ---------- the "mirror": a soft moving light behind frosted glass ---------- */
-  .bg { position: fixed; inset: -20%; z-index: 0; pointer-events: none; filter: blur(60px); opacity: .9; }
-  .bg i { position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%; animation: drift 28s ease-in-out infinite alternate; }
-  .bg i:nth-child(1) { background: var(--bg1); left: 0; top: 0; }
-  .bg i:nth-child(2) { background: var(--bg2); right: 0; top: 10%; animation-duration: 34s; }
-  .bg i:nth-child(3) { background: var(--bg3); left: 25%; bottom: 0; animation-duration: 40s; }
-  @keyframes drift { to { transform: translate(8vmax, -6vmax) scale(1.15); } }
-
-  .glass {
-    position: relative; isolation: isolate;
-    background: linear-gradient(140deg, var(--glass-hi), var(--glass) 45%);
-    -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-    border: 1px solid var(--edge); border-radius: var(--r);
-    box-shadow: var(--shadow), inset 0 1px 0 var(--sheen);
-  }
-  .glass::before { /* the mirror sheen: a diagonal reflection across the top-left */
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
-    background: linear-gradient(118deg, var(--sheen) 0%, transparent 28%, transparent 70%, rgba(255,255,255,.06) 100%);
-  }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: var(--glass-solid); } }
-
-  /* ---------- layout ---------- */
-  .app { position: relative; z-index: 1; height: 100dvh; display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); gap: 12px;
-         padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); max-width: 1500px; margin: 0 auto; }
-  header.top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
-  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
-  .brand img { width: 34px; height: 34px; border-radius: 10px; }
-  h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sub { color: var(--muted); font-size: 12.5px; }
-  .status.bad { color: var(--late); }
-  .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--edge-low); background: var(--glass); cursor: pointer; display: grid; place-items: center; font-size: 17px; flex: none; }
-  .icon-btn:hover { border-color: var(--accent); }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  main { display: grid; gap: 12px; min-height: 0; min-width: 0; grid-template-columns: minmax(300px, .85fr) minmax(400px, 1.3fr) minmax(300px, .85fr); grid-template-areas: "chat map side"; }
-  .view { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
-  #view-chat { grid-area: chat; } #view-map { grid-area: map; } #view-tasks, #view-routines { grid-area: side; }
-  .side-hidden { display: none !important; }
-  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px 8px; }
-  h2 { margin: 0; font-size: 15px; font-weight: 700; }
-  .scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; flex: 1; }
-  nav.tabbar { display: none; }
-
-  @media (max-width: 1023px) {
-    body { --tabbar: calc(64px + env(safe-area-inset-bottom)); }
-    .app { padding-bottom: calc(var(--tabbar) + 10px); gap: 10px; }
-    main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "only"; }
-    .app { width: 100%; }
-    .panel-head { flex-wrap: wrap; }
-    .view { grid-area: only !important; display: none; }
-    .view.active { display: flex; }
-    .side-hidden.active { display: flex !important; }
-    nav.tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); height: 62px; z-index: 20; padding: 4px; }
-    .tab { border: 0; background: transparent; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 11.5px; color: var(--muted); cursor: pointer; position: relative; }
-    .tab span { font-size: 20px; line-height: 1; }
-    .tab[aria-selected=true] { color: var(--accent); background: var(--faint); font-weight: 650; }
-    .badge[hidden] { display: none; }
-    .badge { position: absolute; top: 6px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--late); color: #fff; font-size: 11px; display: grid; place-items: center; }
-    .seg-side { display: none !important; }
-    header.top .hide-sm { display: none; }
-  }
-
-  /* ---------- shared controls ---------- */
-  .btn { border: 1px solid var(--edge-low); background: var(--glass); border-radius: 12px; padding: 8px 14px; min-height: 40px; cursor: pointer; font-weight: 550; }
-  .btn:hover { border-color: var(--accent); }
-  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--on-accent); border-color: transparent; }
-  .btn.small { min-height: 34px; padding: 5px 11px; font-size: 13.5px; }
-  .btn.danger { color: var(--late); }
-  .btn:disabled { opacity: .55; cursor: default; }
-  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--faint); }
-  .seg button { border: 0; background: transparent; border-radius: 9px; padding: 5px 11px; min-height: 32px; cursor: pointer; font-size: 13.5px; color: var(--muted); }
-  .seg button[aria-pressed=true] { background: var(--glass-hi); color: var(--text); font-weight: 650; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-  input[type=text], input[type=time], input[type=number], input[type=datetime-local], input[type=password], select {
-    background: var(--glass-hi); border: 1px solid var(--edge-low); border-radius: 12px; padding: 9px 12px; min-height: 42px; min-width: 0; }
-  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-  .empty { color: var(--muted); padding: 18px 4px; text-align: center; }
-  .bar { height: 8px; border-radius: 6px; background: var(--faint); overflow: hidden; }
-  .bar > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .8s ease; }
-  .bar.over > i { background: linear-gradient(90deg, var(--over), var(--late)); }
-
-  /* ---------- day map ---------- */
-  .now-card { margin: 0 14px 10px; padding: 12px 14px; border-radius: 16px; background: var(--faint); }
-  .now-card .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; }
-  .now-card .t { font-size: 17px; font-weight: 700; margin: 2px 0 8px; overflow-wrap: anywhere; }
-  .now-card .meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .ring { --p: 0; width: 42px; height: 42px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 700;
-          background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--faint) 0); }
-  .ring::after { content: attr(data-label); width: 32px; height: 32px; border-radius: 50%; background: var(--glass-hi); display: grid; place-items: center; }
-  .timeline { position: relative; margin: 0 14px 18px 0; }
-  .hour { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--edge-low); }
-  .hour b { position: absolute; left: 6px; top: -9px; width: 48px; font-size: 11.5px; font-weight: 550; color: var(--muted); text-align: right; padding-right: 8px; }
-  .lane-area { position: absolute; left: 60px; right: 0; top: 0; bottom: 0; }
-  .blk { position: absolute; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
-         border-radius: 12px; padding: 6px 9px; overflow: hidden; cursor: pointer; text-align: left;
-         border: 1px solid var(--edge); background: var(--glass-hi); box-shadow: 0 4px 14px rgba(0,0,0,.08); color: var(--text); font-size: 13px; line-height: 1.25;
-         border-left: 4px solid var(--c); transition: transform .15s; }
-  .blk:hover { transform: translateY(-1px); }
-  .blk .fill { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--fill) * 100%); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 30%, transparent), color-mix(in srgb, var(--c) 18%, transparent)); z-index: 0; transition: height 1s linear; }
-  .blk.live { box-shadow: 0 0 0 2px var(--c), 0 6px 20px color-mix(in srgb, var(--c) 35%, transparent); }
-  .blk.live .fill::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--c); box-shadow: 0 0 10px var(--c); }
-  .blk.done { opacity: .62; } .blk.done .title::before { content: "✓ "; }
-  .blk.missed { border-left-style: dashed; } .blk.missed .title { color: var(--muted); }
-  .blk > * { position: relative; z-index: 1; }
-  .blk .title { font-weight: 650; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .blk .when { font-size: 11.5px; color: var(--muted); }
-  .blk .pct { position: absolute; right: 8px; top: 6px; font-size: 11px; font-weight: 700; color: var(--c); }
-  .pin { position: absolute; right: 4px; transform: translateY(-50%); border: 1px solid var(--edge); background: var(--glass-hi); border-radius: 999px; padding: 2px 9px 2px 6px; font-size: 12px; cursor: pointer; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,.08); max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nowline { position: absolute; left: 54px; right: 0; height: 0; border-top: 2px solid var(--late); z-index: 4; pointer-events: none; }
-  .nowline::before { content: ""; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--late); box-shadow: 0 0 0 4px color-mix(in srgb, var(--late) 25%, transparent); }
-  .nowline span { position: absolute; right: 4px; top: -20px; font-size: 11px; font-weight: 700; color: var(--late); background: var(--glass-hi); padding: 0 6px; border-radius: 6px; }
-
-  /* ---------- chat ---------- */
-  .log { flex: 1; overflow-y: auto; padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 9px; }
-  .msg { max-width: 88%; padding: 9px 13px; border-radius: 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; }
-  .msg.user { align-self: flex-end; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--on-accent); border-bottom-right-radius: 5px; }
-  .msg.assistant { align-self: flex-start; background: var(--glass-hi); border: 1px solid var(--edge-low); border-bottom-left-radius: 5px; }
-  .msg.proactive { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
-  .msg .meta { display: block; margin-top: 4px; font-size: 11px; opacity: .7; }
-  .msg .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chips { display: flex; gap: 6px; padding: 0 12px 8px; overflow-x: auto; scrollbar-width: none; }
-  .chips button { flex: none; border: 1px solid var(--edge-low); background: var(--glass); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); min-height: 34px; }
-  form.composer { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--edge-low); }
-  form.composer input { flex: 1; }
-
-  /* ---------- lists ---------- */
-  .item { display: flex; gap: 10px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--edge-low); }
-  .item:last-child { border-bottom: 0; }
-  .item .grow { flex: 1; min-width: 0; }
-  .item .name { font-weight: 600; overflow-wrap: anywhere; }
-  .item .bar { margin-top: 6px; }
-  .item.off { opacity: .55; }
-  .add-card { margin: 0 14px 10px; padding: 12px; border-radius: 16px; background: var(--faint); display: grid; gap: 8px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .days { display: flex; gap: 4px; }
-  .days button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--edge-low); background: var(--glass); cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--muted); }
-  .days button[aria-pressed=true] { background: var(--routine); border-color: var(--routine); color: #fff; }
-  .presets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-  .presets button { flex: none; border: 1px dashed var(--routine); color: var(--routine); background: transparent; border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 13px; font-weight: 600; min-height: 34px; }
-  .switch { width: 44px; height: 26px; border-radius: 13px; border: 0; background: var(--faint); position: relative; cursor: pointer; flex: none; }
-  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
-  .switch[aria-checked=true] { background: var(--routine); }
-  .switch[aria-checked=true]::after { transform: translateX(18px); }
-
-  /* ---------- toasts & sheet ---------- */
-  #toasts { position: fixed; z-index: 50; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 24px)); display: grid; gap: 8px; pointer-events: none; }
-  .toast { pointer-events: auto; padding: 12px 14px; animation: drop .35s cubic-bezier(.2,.9,.3,1.2); }
-  .toast .tt { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
-  .toast .tb { color: var(--muted); font-size: 13.5px; margin-top: 2px; white-space: pre-wrap; }
-  .toast .x { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 16px; min-width: 28px; }
-  .toast .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  @keyframes drop { from { opacity: 0; transform: translateY(-14px) scale(.97); } }
-  .scrim { position: fixed; inset: 0; background: rgba(5, 8, 20, .35); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
-  .scrim.open { opacity: 1; pointer-events: auto; }
-  .sheet { position: fixed; z-index: 41; left: 50%; bottom: calc(var(--tabbar) + 12px); transform: translate(-50%, 130%); width: min(460px, calc(100% - 20px)); padding: 16px; transition: transform .28s cubic-bezier(.2,.9,.3,1); }
-  .sheet.open { transform: translate(-50%, 0); }
-  .sheet h3 { margin: 0 0 2px; font-size: 18px; overflow-wrap: anywhere; }
-  .sheet .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-  dialog { border: 1px solid var(--edge); border-radius: var(--r); background: var(--glass-solid); color: var(--text); width: min(420px, calc(100% - 32px)); }
-  dialog::backdrop { background: rgba(0,0,0,.45); }
-  @media (prefers-reduced-motion: reduce) { *, .bg i { animation: none !important; transition: none !important; } }
-</style>
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -214,13 +23,11 @@
       <div style="min-width:0"><h1>Personal AI Assistant</h1><div class="sub status" id="conn">connecting…</div></div>
     </div>
     <div class="ring" id="dayRing" data-label="0%" title="How far through today's plan you are" role="img" aria-label="Day progress"></div>
-    <button class="icon-btn" id="soundBtn" title="Sound" aria-label="Toggle sound">🔊</button>
-    <button class="icon-btn" id="bellBtn" title="Notifications" aria-label="Notifications">🔔</button>
+    <button class="icon-btn" id="bellBtn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog">🔔<b class="count" id="bellCount" hidden>0</b></button>
     <button class="icon-btn hide-sm" id="keyBtn" title="API key" aria-label="Set API key">🔑</button>
   </header>
 
   <main>
-    <!-- CHAT -->
     <section class="view glass" id="view-chat" aria-label="Chat">
       <div class="panel-head"><h2>Chat</h2><span class="sub">tasks, plans, anything</span></div>
       <div class="log" id="log" role="log" aria-live="polite"></div>
@@ -231,22 +38,15 @@
       </form>
     </section>
 
-    <!-- DAY MAP -->
-    <section class="view glass active" id="view-map" aria-label="Day map">
-      <div class="panel-head">
-        <h2 id="dayTitle">Today</h2>
-        <div class="row">
-          <span class="seg" role="group" aria-label="Day">
-            <button id="dToday" aria-pressed="true">Today</button><button id="dTomorrow" aria-pressed="false">Tomorrow</button>
-          </span>
-          <button class="btn small primary" id="planBtn" title="Fit your open tasks into today">✨ Plan</button>
-        </div>
+    <section class="view glass active" id="view-map" aria-label="Calendar">
+      <div class="panel-head" style="padding-bottom:6px">
+        <h2>Calendar</h2>
+        <button class="btn small" id="planBtn" title="Fit your open tasks into free time today">✨ Plan my day</button>
       </div>
       <div class="now-card" id="nowCard" hidden></div>
-      <div class="scroll" id="mapScroll"><div class="timeline" id="timeline"></div></div>
+      <div id="calendar" class="cal"></div>
     </section>
 
-    <!-- TASKS -->
     <section class="view glass" id="view-tasks" aria-label="Tasks">
       <div class="panel-head">
         <h2>Tasks</h2>
@@ -259,16 +59,13 @@
           <label class="field">Minutes<input type="number" id="tEst" min="5" max="720" step="5" value="30"></label>
         </div>
         <div class="row" style="justify-content:space-between">
-          <span class="seg" role="group" aria-label="Priority" id="tPrio">
-            <button type="button" data-p="P1" aria-pressed="false">Urgent</button><button type="button" data-p="P2" aria-pressed="false">High</button><button type="button" data-p="P3" aria-pressed="true">Normal</button><button type="button" data-p="P4" aria-pressed="false">Low</button>
-          </span>
+          <span class="prio" id="tPrio" role="group" aria-label="Importance"></span>
           <button class="btn primary small" type="submit">Add</button>
         </div>
       </form>
       <div class="scroll" style="padding:0 14px 12px"><div id="taskList"></div></div>
     </section>
 
-    <!-- ROUTINES -->
     <section class="view glass side-hidden" id="view-routines" aria-label="Routines">
       <div class="panel-head">
         <h2>Daily routines</h2>
@@ -299,7 +96,7 @@
 </div>
 
 <nav class="tabbar glass" role="tablist" aria-label="Sections">
-  <button class="tab" role="tab" data-view="map" aria-selected="true"><span>🗺️</span>Day</button>
+  <button class="tab" role="tab" data-view="map" aria-selected="true"><span>📅</span>Calendar</button>
   <button class="tab" role="tab" data-view="chat" aria-selected="false"><span>💬</span>Chat<b class="badge" id="chatBadge" hidden>0</b></button>
   <button class="tab" role="tab" data-view="tasks" aria-selected="false"><span>✅</span>Tasks</button>
   <button class="tab" role="tab" data-view="routines" aria-selected="false"><span>🔁</span>Routines</button>
@@ -308,6 +105,15 @@
 <div id="toasts" aria-live="assertive"></div>
 <div class="scrim" id="scrim"></div>
 <div class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden></div>
+
+<section class="panel glass" id="notifPanel" role="dialog" aria-label="Notifications" hidden>
+  <div class="ph"><h2>Notifications</h2><button class="btn small" id="markRead">Mark all read</button></div>
+  <div class="opts">
+    <div class="opt"><span id="pushLabel">Pop-ups on this device</span><button class="btn small" id="pushBtn">Turn on</button></div>
+    <div class="opt"><span>Sound &amp; vibration</span><button class="switch" id="soundSwitch" role="switch" aria-checked="true" aria-label="Sound"></button></div>
+  </div>
+  <div class="list" id="notifList"></div>
+</section>
 
 <dialog id="keyDialog">
   <form method="dialog" style="display:grid;gap:10px;padding:6px">
@@ -318,508 +124,6 @@
   </form>
 </dialog>
 
-<script>
-(() => {
-  "use strict";
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-  const store = {
-    get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
-  };
-  const S = { day: "today", tz: undefined, schedule: null, tasks: [], routines: [], lastId: 0, loadedOnce: false,
-              pushActive: false, sound: store.get("sound") !== "off", unread: 0, view: "map", side: store.get("side") || "tasks",
-              editing: null, scrolledFor: "" };
-  const COLORS = { WORK: "var(--work)", EVENT: "var(--event)", ROUTINE: "var(--routine)", REMINDER: "var(--reminder)" };
-  const PCOL = { P1: "var(--p1)", P2: "var(--p2)", P3: "var(--p3)", P4: "var(--p4)" };
-  const isMobile = () => matchMedia("(max-width: 1023px)").matches;
-
-  // ------------------------------------------------------------------ api
-  async function api(path, opts = {}) {
-    const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
-    const key = store.get("api_key"); if (key) headers["X-API-Key"] = key;
-    const res = await fetch("/api/v1" + path, { ...opts, headers });
-    if (res.status === 401) { askKey(); throw new Error("API key required"); }
-    if (!res.ok) {
-      let d = res.statusText; try { d = (await res.json()).detail || d; } catch { /* not json */ }
-      throw new Error(typeof d === "string" ? d : JSON.stringify(d));
-    }
-    return res.json();
-  }
-  const post = (p, b) => api(p, { method: "POST", body: JSON.stringify(b ?? {}) });
-  const patch = (p, b) => api(p, { method: "PATCH", body: JSON.stringify(b ?? {}) });
-  const del = (p) => api(p, { method: "DELETE" });
-
-  function setStatus(t, bad) { const c = $("conn"); c.textContent = t; c.className = "sub status" + (bad ? " bad" : ""); }
-  function askKey() { const d = $("keyDialog"); if (!d.open) d.showModal(); }
-  $("keyBtn").onclick = askKey;
-  $("keyDialog").addEventListener("close", (e) => { if (e.target.returnValue === "ok") { store.set("api_key", $("keyInput").value.trim()); refreshAll(); } });
-
-  // ------------------------------------------------------------------ time helpers (in the user's configured timezone)
-  function minutesOf(iso) {
-    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: S.tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso));
-    const get = (t) => +parts.find((p) => p.type === t).value;
-    return get("hour") * 60 + get("minute");
-  }
-  function fmt(iso, withDate) {
-    if (!iso) return "";
-    const o = { hour: "numeric", minute: "2-digit", timeZone: S.tz };
-    if (withDate) Object.assign(o, { weekday: "short", day: "numeric", month: "short" });
-    return new Date(iso).toLocaleString([], o);
-  }
-  const hhmmToMin = (s) => { const [h, m] = String(s || "0:0").split(":").map(Number); return h * 60 + (m || 0); };
-  function humanMin(m) { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60), r = m % 60; return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r}m`; }
-
-  // ------------------------------------------------------------------ in-app notifications: toast + chime + vibration
-  let audio;
-  function unlockAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch { /* no audio */ } }
-  document.addEventListener("pointerdown", unlockAudio, { once: true });
-  function chime() {
-    if (!S.sound || !audio) return;
-    const t = audio.currentTime;
-    [[880, 0], [1320, .16]].forEach(([f, d]) => {
-      const o = audio.createOscillator(), g = audio.createGain();
-      o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(audio.destination);
-      g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.18, t + d + .02); g.gain.exponentialRampToValueAtTime(.001, t + d + .5);
-      o.start(t + d); o.stop(t + d + .55);
-    });
-  }
-  function renderSound() { $("soundBtn").textContent = S.sound ? "🔊" : "🔇"; $("soundBtn").title = S.sound ? "Sound on" : "Sound off"; }
-  $("soundBtn").onclick = () => { S.sound = !S.sound; store.set("sound", S.sound ? "on" : "off"); unlockAudio(); renderSound(); if (S.sound) chime(); };
-
-  function toast(text, buttons = [], { sticky = false } = {}) {
-    const [first, ...rest] = String(text).split("\n");
-    const t = el("div", "toast glass"); t.setAttribute("role", "status");
-    const head = el("div", "tt"); head.appendChild(el("span", null, rest.length ? first : "Your assistant"));
-    const x = el("button", "x", "✕"); x.setAttribute("aria-label", "Dismiss"); x.onclick = () => t.remove(); head.appendChild(x);
-    t.appendChild(head);
-    t.appendChild(el("div", "tb", rest.length ? rest.slice(0, 6).join("\n") : first));
-    if (buttons.length) {
-      const row = el("div", "actions");
-      for (const [label, data] of buttons) {
-        const b = el("button", "btn small", label);
-        b.onclick = async () => { b.disabled = true; try { await post("/actions", { data }); t.remove(); await refreshAll(); } catch (e) { setStatus(e.message, true); b.disabled = false; } };
-        row.appendChild(b);
-      }
-      t.appendChild(row);
-    }
-    $("toasts").prepend(t);
-    while ($("toasts").children.length > 3) $("toasts").lastChild.remove();
-    setTimeout(() => t.remove(), sticky || buttons.length ? 45000 : 9000);
-  }
-  function alertUser(m) {
-    toast(m.content, m.buttons || []);
-    chime();
-    if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-    if (!S.pushActive && "Notification" in window && Notification.permission === "granted" && document.hidden) {
-      const [title, ...rest] = m.content.split("\n");
-      const n = new Notification(rest.length ? title : "Your assistant", { body: rest.length ? rest.join("\n") : title, icon: "/static/icon-192.png", tag: "msg-" + m.id });
-      n.onclick = () => { window.focus(); n.close(); };
-    }
-  }
-
-  // ------------------------------------------------------------------ views / tabs
-  function setView(v) {
-    S.view = v;
-    if (v === "tasks" || v === "routines") { S.side = v; store.set("side", v); }
-    document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.view === v));
-    for (const name of ["map", "chat", "tasks", "routines"]) $("view-" + name).classList.toggle("active", name === v);
-    $("view-tasks").classList.toggle("side-hidden", S.side !== "tasks");
-    $("view-routines").classList.toggle("side-hidden", S.side !== "routines");
-    document.querySelectorAll(".seg-side button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.side === S.side));
-    if (v === "chat") { S.unread = 0; renderBadge(); setTimeout(() => { $("log").scrollTop = $("log").scrollHeight; }, 0); }
-    if (v === "map") S.scrolledFor = "";  // re-centre on "now"
-    if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
-  }
-  document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => { setView(t.dataset.view); if (t.dataset.view === "map") renderMap(); }));
-  document.querySelectorAll(".seg-side button").forEach((b) => (b.onclick = () => setView(b.dataset.side)));
-  function renderBadge() { const b = $("chatBadge"); b.hidden = !S.unread; b.textContent = S.unread > 9 ? "9+" : S.unread; }
-
-  // ------------------------------------------------------------------ chat
-  const seen = new Set();
-  function addMessage(m) {
-    if (seen.has(m.id)) return;
-    seen.add(m.id); S.lastId = Math.max(S.lastId, m.id);
-    const e = el("div", "msg " + m.role + (m.channel === "proactive" ? " proactive" : ""), m.content);
-    e.appendChild(el("span", "meta", fmt(m.created_at) + (m.channel === "proactive" ? " · reminder" : m.channel === "telegram" ? " · Telegram" : "")));
-    if (m.buttons && m.buttons.length) {
-      const row = el("div", "actions");
-      for (const [label, data] of m.buttons) {
-        const b = el("button", "btn small", label);
-        b.onclick = async () => { row.querySelectorAll("button").forEach((x) => (x.disabled = true)); try { await post("/actions", { data }); await refreshAll(); } catch (er) { setStatus(er.message, true); row.querySelectorAll("button").forEach((x) => (x.disabled = false)); } };
-        row.appendChild(b);
-      }
-      e.appendChild(row);
-    }
-    $("log").appendChild(e);
-  }
-  let polling = false;
-  async function poll() {
-    if (polling) return; polling = true;
-    try {
-      const log = $("log"), near = log.scrollHeight - log.scrollTop - log.clientHeight < 90;
-      const msgs = await api("/messages?after_id=" + S.lastId + "&limit=100");
-      msgs.forEach(addMessage);
-      if (msgs.length && (near || !S.loadedOnce)) log.scrollTop = log.scrollHeight;
-      if (S.loadedOnce) {
-        const fresh = msgs.filter((m) => m.channel === "proactive");
-        fresh.forEach(alertUser);
-        if (fresh.length) refreshPanels();
-        const unseen = msgs.filter((m) => m.role === "assistant").length;
-        if (unseen && S.view !== "chat" && isMobile()) { S.unread += unseen; renderBadge(); }
-      }
-      S.loadedOnce = true;
-      setStatus("online");
-    } catch (e) { setStatus(e.message === "API key required" ? "API key required" : "offline — is the server running?", true); }
-    finally { polling = false; }
-  }
-  async function sendChat(text) {
-    const input = $("input"), send = $("send");
-    send.disabled = true; send.textContent = "…";
-    const typing = el("div", "msg assistant", "Thinking…"); $("log").appendChild(typing); $("log").scrollTop = $("log").scrollHeight;
-    try { await post("/chat", { message: text }); }
-    catch (e) { $("log").appendChild(el("div", "msg assistant", "Couldn't send: " + e.message)); }
-    typing.remove(); send.disabled = false; send.textContent = "Send"; if (!isMobile()) input.focus();
-    await poll(); await refreshPanels();
-  }
-  $("composer").addEventListener("submit", (e) => { e.preventDefault(); const t = $("input").value.trim(); if (!t) return; $("input").value = ""; sendChat(t); });
-  for (const [label, text] of [["Plan my day", "plan my day"], ["What's next?", "what should I do next?"], ["Plan tomorrow", "plan tomorrow"], ["Day review", "end of day review"]]) {
-    const b = el("button", null, label); b.type = "button"; b.onclick = () => sendChat(text); $("chips").appendChild(b);
-  }
-
-  // ------------------------------------------------------------------ day map
-  function blockProgress(b) {
-    if (b.task_status === "DONE" || b.status === "DONE") return 1;
-    const now = Date.now(), s = Date.parse(b.start), e = Date.parse(b.end);
-    return now <= s ? 0 : now >= e ? 1 : (now - s) / (e - s);
-  }
-  function blockColor(b) { return b.kind === "EVENT" ? (b.routine ? COLORS.ROUTINE : COLORS.EVENT) : (PCOL[b.priority] && b.priority === "P1" ? "var(--p1)" : COLORS.WORK); }
-  function layoutLanes(items) {
-    items.sort((a, b) => a.s - b.s || b.e - a.e);
-    let cluster = [], end = -1;
-    const flush = () => {
-      const lanes = [];
-      for (const it of cluster) { let i = lanes.findIndex((x) => x <= it.s); if (i < 0) { i = lanes.length; lanes.push(0); } lanes[i] = it.e; it.lane = i; }
-      cluster.forEach((it) => (it.lanes = lanes.length)); cluster = [];
-    };
-    for (const it of items) { if (cluster.length && it.s >= end) { flush(); end = -1; } cluster.push(it); end = Math.max(end, it.e); }
-    if (cluster.length) flush();
-    return items;
-  }
-
-  function renderMap() {
-    const s = S.schedule, tl = $("timeline");
-    if (!s) return;
-    const isToday = S.day === "today";
-    const PX = isMobile() ? 1.25 : 1.4;
-    const items = s.blocks.map((b) => ({ b, s: minutesOf(b.start), e: Math.max(minutesOf(b.start) + 15, minutesOf(b.end) || 1440) }));
-    const pins = s.reminders.filter((t) => t.due_at).map((t) => ({ t, m: minutesOf(t.due_at) }));
-    let lo = hhmmToMin(s.window.start), hi = hhmmToMin(s.window.end);
-    items.forEach((i) => { lo = Math.min(lo, i.s); hi = Math.max(hi, i.e); });
-    pins.forEach((p) => { lo = Math.min(lo, p.m); hi = Math.max(hi, p.m + 30); });
-    const nowM = isToday ? minutesOf(new Date().toISOString()) : null;
-    if (nowM != null) { lo = Math.min(lo, nowM - 30); hi = Math.max(hi, nowM + 60); }
-    lo = Math.max(0, Math.floor(lo / 60) * 60); hi = Math.min(1440, Math.ceil(hi / 60) * 60);
-    const y = (m) => (m - lo) * PX;
-
-    tl.replaceChildren();
-    tl.style.height = y(hi) + 24 + "px";
-    for (let h = lo; h <= hi; h += 60) {
-      const line = el("div", "hour"); line.style.top = y(h) + 12 + "px";
-      const hr = Math.floor(h / 60) % 24; line.appendChild(el("b", null, (hr % 12 || 12) + (hr < 12 ? " AM" : " PM")));
-      tl.appendChild(line);
-    }
-    const area = el("div", "lane-area"); area.style.top = "12px"; tl.appendChild(area);
-
-    if (!items.length && !pins.length) {
-      const msg = el("div", "empty", isToday ? "Nothing on the map yet. Add tasks or routines, then tap ✨ Plan." : "Nothing planned for tomorrow yet.");
-      msg.style.cssText = "position:absolute;left:0;right:0;top:40px"; area.appendChild(msg);
-    }
-    for (const it of layoutLanes(items)) {
-      const b = it.b, p = blockProgress(b), live = p > 0 && p < 1 && isToday;
-      const missed = b.kind === "WORK" && p >= 1 && b.task_status !== "DONE" && b.status !== "DONE";
-      const done = b.task_status === "DONE" || b.status === "DONE";
-      const card = el("button", "blk" + (live ? " live" : "") + (done ? " done" : "") + (missed ? " missed" : ""));
-      card.type = "button";
-      card.style.setProperty("--c", blockColor(b));
-      card.style.setProperty("--fill", isToday ? p : 0);
-      card.style.top = y(it.s) + "px";
-      card.style.height = Math.max(26, (it.e - it.s) * PX - 3) + "px";
-      card.style.left = `calc(${(it.lane / it.lanes) * 100}% + 2px)`;
-      card.style.width = `calc(${100 / it.lanes}% - 6px)`;
-      card.dataset.id = b.id;
-      card.appendChild(el("i", "fill"));
-      card.appendChild(el("span", "title", (b.routine ? "🔁 " : b.kind === "EVENT" ? "📅 " : "") + b.title));
-      if ((it.e - it.s) * PX > 36) card.appendChild(el("span", "when", b.label));
-      if (live) card.appendChild(el("span", "pct", Math.round(p * 100) + "%"));
-      card.setAttribute("aria-label", `${b.title}, ${b.label}${live ? ", " + Math.round(p * 100) + "% done" : ""}`);
-      card.onclick = () => openSheet({ type: "block", b });
-      area.appendChild(card);
-    }
-    for (const pn of pins) {
-      const pin = el("button", "pin", "⏰ " + pn.t.title); pin.type = "button";
-      pin.style.top = y(pn.m) + "px"; pin.title = fmt(pn.t.due_at);
-      pin.onclick = () => openSheet({ type: "task", t: pn.t });
-      area.appendChild(pin);
-    }
-    if (nowM != null && nowM >= lo && nowM <= hi) {
-      const line = el("div", "nowline"); line.style.top = y(nowM) + 12 + "px";
-      line.appendChild(el("span", null, fmt(new Date().toISOString())));
-      tl.appendChild(line);
-      const key = s.day + ":" + S.view;
-      if (S.scrolledFor !== key) { S.scrolledFor = key; $("mapScroll").scrollTop = Math.max(0, y(nowM) - $("mapScroll").clientHeight / 3); }
-    } else if (S.scrolledFor !== s.day) { S.scrolledFor = s.day; $("mapScroll").scrollTop = 0; }
-    renderNow();
-  }
-
-  function renderNow() {
-    const s = S.schedule, card = $("nowCard");
-    if (!s || S.day !== "today") { card.hidden = true; return; }
-    card.hidden = false; card.replaceChildren();
-    const now = Date.now();
-    const running = s.in_progress.find((t) => t.started_at);
-    const current = s.blocks.find((b) => Date.parse(b.start) <= now && now < Date.parse(b.end) && b.task_status !== "DONE");
-    const next = s.blocks.filter((b) => Date.parse(b.start) > now).sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0];
-
-    let pct = 0, over = false, title, kicker, left, right, actions = [];
-    if (running) {
-      const el_ = (now - Date.parse(running.started_at)) / 60000, est = running.estimate_min || 30;
-      pct = el_ / est; over = pct > 1;
-      kicker = "Working on"; title = running.title;
-      left = humanMin(el_) + " elapsed"; right = over ? humanMin(el_ - est) + " over estimate" : humanMin(est - el_) + " left";
-      actions = [["⏸ Pause", () => post(`/tasks/${running.id}/pause`)], ["✅ Done", () => post(`/tasks/${running.id}/complete`)]];
-    } else if (current) {
-      const s0 = Date.parse(current.start), e0 = Date.parse(current.end);
-      pct = (now - s0) / (e0 - s0);
-      kicker = current.kind === "EVENT" ? (current.routine ? "Routine now" : "Happening now") : "Focus block now";
-      title = current.title; left = current.label; right = humanMin((e0 - now) / 60000) + " left";
-      if (current.task_id && current.kind === "WORK" && current.task_status !== "IN_PROGRESS") actions.push(["▶ Start", () => post(`/tasks/${current.task_id}/start`)]);
-      if (current.task_id) actions.push(["✅ Done", () => post(`/tasks/${current.task_id}/complete`)]);
-    } else if (next) {
-      const mins = (Date.parse(next.start) - now) / 60000;
-      kicker = "Up next"; title = next.title; left = next.label; right = "in " + humanMin(mins);
-      pct = 0;
-    } else {
-      kicker = "Free"; title = s.blocks.length ? "Nothing else planned today" : "Your day is open"; left = ""; right = "";
-    }
-    card.appendChild(el("div", "k", kicker));
-    card.appendChild(el("div", "t", title));
-    if (running || current) {
-      const bar = el("div", "bar" + (over ? " over" : "")); const fill = el("i"); fill.style.width = Math.min(100, pct * 100) + "%";
-      bar.appendChild(fill); bar.setAttribute("role", "progressbar"); bar.setAttribute("aria-valuenow", Math.round(pct * 100));
-      bar.setAttribute("aria-valuemin", 0); bar.setAttribute("aria-valuemax", 100); card.appendChild(bar);
-    }
-    const meta = el("div", "meta"); meta.appendChild(el("span", null, left)); meta.appendChild(el("span", null, (running || current ? Math.round(Math.min(pct, 9.99) * 100) + "% · " : "") + right));
-    card.appendChild(meta);
-    if (actions.length) {
-      const row = el("div", "row"); row.style.marginTop = "10px";
-      for (const [label, fn] of actions) { const b = el("button", "btn small", label); b.onclick = async () => { b.disabled = true; try { await fn(); await refreshAll(); } catch (e) { setStatus(e.message, true); } }; row.appendChild(b); }
-      card.appendChild(row);
-    }
-    // header ring: how far through today's planned time you are
-    const total = s.blocks.reduce((a, b) => a + (Date.parse(b.end) - Date.parse(b.start)), 0);
-    const doneMs = s.blocks.reduce((a, b) => a + blockProgress(b) * (Date.parse(b.end) - Date.parse(b.start)), 0);
-    const p = total ? Math.round((doneMs / total) * 100) : 0;
-    $("dayRing").style.setProperty("--p", p); $("dayRing").dataset.label = p + "%";
-  }
-
-  // ------------------------------------------------------------------ detail sheet
-  function closeSheet() { $("sheet").classList.remove("open"); $("scrim").classList.remove("open"); setTimeout(() => ($("sheet").hidden = true), 250); }
-  $("scrim").onclick = closeSheet;
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
-  function openSheet(item) {
-    const sh = $("sheet"); sh.replaceChildren();
-    const b = item.b, t = item.t;
-    const taskId = b ? b.task_id : t.id;
-    const status = b ? b.task_status : t.status;
-    const title = el("h3", null, b ? b.title : t.title); title.id = "sheetTitle"; sh.appendChild(title);
-    const sub = b ? `${b.label} · ${b.kind === "EVENT" ? (b.routine ? "routine" : "event") : "focus block"}` : `⏰ reminder · ${t.due_at ? fmt(t.due_at, true) : "any time"}`;
-    sh.appendChild(el("div", "sub", sub));
-    if (b) {
-      const p = blockProgress(b);
-      const bar = el("div", "bar"); bar.style.margin = "12px 0 4px"; const f = el("i"); f.style.width = p * 100 + "%"; bar.appendChild(f); sh.appendChild(bar);
-      const rem = (Date.parse(b.end) - Date.now()) / 60000;
-      sh.appendChild(el("div", "sub", status === "DONE" ? "Done ✓" : p === 0 ? "Starts in " + humanMin((Date.parse(b.start) - Date.now()) / 60000) : p < 1 ? `${Math.round(p * 100)}% through · ${humanMin(rem)} left` : "Time block has ended"));
-      if (b.reason) sh.appendChild(el("div", "sub", "Why now: " + b.reason));
-    }
-    const row = el("div", "actions");
-    const add = (label, fn, cls = "btn") => { const x = el("button", cls, label); x.onclick = async () => { x.disabled = true; try { const r = await fn(); if (r && r.reply) toast(r.reply); closeSheet(); await refreshAll(); } catch (e) { setStatus(e.message, true); x.disabled = false; } }; row.appendChild(x); };
-    if (taskId && status !== "DONE") {
-      if (b && b.kind === "WORK") status === "IN_PROGRESS" ? add("⏸ Pause", () => post(`/tasks/${taskId}/pause`)) : add("▶ Start", () => post(`/tasks/${taskId}/start`));
-      add("✅ Done", () => post(`/tasks/${taskId}/complete`), "btn primary");
-      add("⏰ +30m", () => post(`/tasks/${taskId}/snooze`, { minutes: 30 }));
-      if (!(b && b.routine)) add("➡️ Tomorrow", () => post("/actions", { data: "tmr:" + taskId }));
-      if (b && b.routine) add("Skip today", () => del(`/tasks/${taskId}`), "btn danger");
-    }
-    const close = el("button", "btn", "Close"); close.onclick = closeSheet; row.appendChild(close);
-    sh.appendChild(row);
-    sh.hidden = false; requestAnimationFrame(() => { sh.classList.add("open"); $("scrim").classList.add("open"); (row.querySelector("button") || close).focus(); });
-  }
-
-  // ------------------------------------------------------------------ tasks
-  let prio = "P3";
-  $("tPrio").querySelectorAll("button").forEach((b) => (b.onclick = () => { prio = b.dataset.p; $("tPrio").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); }));
-  $("taskForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const title = $("tTitle").value.trim(); if (!title) return;
-    try {
-      await post("/tasks", { title, priority: prio, estimate_min: +$("tEst").value || 30, due_at: $("tDue").value ? $("tDue").value + ":00" : null });
-      $("tTitle").value = ""; $("tDue").value = ""; toast("Task added\n" + title); await refreshAll();
-    } catch (er) { toast("Couldn't add task\n" + er.message); }
-  });
-  function renderTasks() {
-    const box = $("taskList"); box.replaceChildren();
-    const list = S.tasks.filter((t) => !t.routine_id);
-    if (!list.length) { box.appendChild(el("div", "empty", "No open tasks. 🎉")); return; }
-    for (const t of list) {
-      const it = el("div", "item");
-      const dot = el("span", "dot"); dot.style.background = PCOL[t.priority] || "var(--p4)"; dot.title = t.priority; it.appendChild(dot);
-      const g = el("div", "grow");
-      g.appendChild(el("div", "name", (t.kind === "REMINDER" ? "⏰ " : t.kind === "EVENT" ? "📅 " : "") + t.title));
-      const bits = [t.priority]; if (t.kind === "TASK") bits.push(humanMin(t.estimate_min)); if (t.due_at) bits.push("due " + fmt(t.due_at, true)); if (t.recurrence) bits.push("repeats " + t.recurrence.toLowerCase());
-      g.appendChild(el("div", "sub", bits.join(" · ")));
-      if (t.status === "IN_PROGRESS" && t.started_at) {
-        const mins = (Date.now() - Date.parse(t.started_at)) / 60000, pct = mins / (t.estimate_min || 30);
-        const bar = el("div", "bar" + (pct > 1 ? " over" : "")); const f = el("i"); f.style.width = Math.min(100, pct * 100) + "%"; bar.appendChild(f); g.appendChild(bar);
-        g.appendChild(el("div", "sub", `${humanMin(mins)} of ${humanMin(t.estimate_min)}` + (pct > 1 ? " · over estimate" : "")));
-      }
-      it.appendChild(g);
-      if (t.kind === "TASK") {
-        const sp = el("button", "btn small", t.status === "IN_PROGRESS" ? "⏸" : "▶");
-        sp.title = t.status === "IN_PROGRESS" ? "Pause" : "Start"; sp.setAttribute("aria-label", sp.title + " " + t.title);
-        sp.onclick = async () => { sp.disabled = true; try { await post(`/tasks/${t.id}/${t.status === "IN_PROGRESS" ? "pause" : "start"}`); await refreshAll(); } catch (e) { setStatus(e.message, true); sp.disabled = false; } };
-        it.appendChild(sp);
-      }
-      const done = el("button", "btn small", "✓"); done.title = "Done"; done.setAttribute("aria-label", "Mark " + t.title + " done");
-      done.onclick = async () => { done.disabled = true; try { await post(`/tasks/${t.id}/complete`); toast("✅ Done\n" + t.title); await refreshAll(); } catch (e) { setStatus(e.message, true); done.disabled = false; } };
-      it.appendChild(done);
-      box.appendChild(it);
-    }
-  }
-
-  // ------------------------------------------------------------------ routines
-  const DAY_LBL = ["M", "T", "W", "T", "F", "S", "S"], DAY_NAME = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  let rDays = new Set([0, 1, 2, 3, 4, 5, 6]), rKind = "EVENT";
-  DAY_LBL.forEach((l, i) => { const b = el("button", null, l); b.type = "button"; b.setAttribute("aria-label", DAY_NAME[i]); b.onclick = () => { rDays.has(i) ? rDays.delete(i) : rDays.add(i); paintDays(); }; $("rDays").appendChild(b); });
-  function paintDays() { [...$("rDays").children].forEach((b, i) => b.setAttribute("aria-pressed", rDays.has(i))); }
-  function paintKind() { $("rKind").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.k === rKind)); }
-  $("rKind").querySelectorAll("button").forEach((b) => (b.onclick = () => { rKind = b.dataset.k; paintKind(); }));
-  const PRESETS = [["🍳 Breakfast", "08:00", 30], ["🥗 Lunch", "13:00", 45], ["🍽️ Dinner", "20:00", 45], ["🏋️ Gym", "18:00", 60], ["📞 Call mom", "19:30", 15], ["🧘 Meditate", "07:00", 15]];
-  for (const [name, time, dur] of PRESETS) {
-    const b = el("button", null, "+ " + name); b.type = "button";
-    b.onclick = () => { resetRoutineForm(); $("rTitle").value = name.replace(/^\S+\s/, ""); $("rTime").value = time; $("rDur").value = dur; $("rSave").focus(); };
-    $("presets").appendChild(b);
-  }
-  function resetRoutineForm() {
-    S.editing = null; $("rTitle").value = ""; $("rTime").value = "18:00"; $("rDur").value = 30; rDays = new Set([0, 1, 2, 3, 4, 5, 6]); rKind = "EVENT";
-    paintDays(); paintKind(); $("rSave").textContent = "Add routine"; $("rDelete").hidden = true; $("rCancel").hidden = true;
-  }
-  function editRoutine(r) {
-    S.editing = r.id; $("rTitle").value = r.title; $("rTime").value = r.time_of_day; $("rDur").value = r.duration_min;
-    rDays = new Set(r.days); rKind = r.kind; paintDays(); paintKind();
-    $("rSave").textContent = "Save"; $("rDelete").hidden = false; $("rCancel").hidden = false; $("rTitle").focus();
-  }
-  $("rCancel").onclick = resetRoutineForm;
-  $("rDelete").onclick = async () => {
-    if (!S.editing || !confirm("Delete this routine and its upcoming entries?")) return;
-    try { await del(`/routines/${S.editing}`); toast("Routine deleted"); resetRoutineForm(); await refreshAll(); } catch (e) { toast("Couldn't delete\n" + e.message); }
-  };
-  $("routineForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!rDays.size) { toast("Pick at least one day"); return; }
-    const body = { title: $("rTitle").value.trim(), time_of_day: $("rTime").value, duration_min: +$("rDur").value || 30, days: [...rDays].sort(), kind: rKind };
-    try {
-      if (S.editing) { await patch(`/routines/${S.editing}`, body); toast("Routine updated\n" + body.title); }
-      else { const r = await post("/routines", body); toast(`🔁 Routine added\n${r.title} at ${r.time_of_day}, ${r.days_label}`); }
-      resetRoutineForm(); await refreshAll();
-    } catch (er) { toast("Couldn't save routine\n" + er.message); }
-  });
-  function renderRoutines() {
-    const box = $("routineList"); box.replaceChildren();
-    if (!S.routines.length) { box.appendChild(el("div", "empty", "No routines yet. Tap a preset above — they'll show on your day map every day.")); return; }
-    for (const r of S.routines) {
-      const it = el("div", "item" + (r.active ? "" : " off"));
-      const time = el("div", null, r.time_of_day); time.style.cssText = "font-weight:700;font-variant-numeric:tabular-nums;min-width:50px"; it.appendChild(time);
-      const g = el("div", "grow"); g.style.cursor = "pointer"; g.onclick = () => editRoutine(r);
-      g.appendChild(el("div", "name", (r.kind === "REMINDER" ? "⏰ " : "🔁 ") + r.title));
-      let today = "";
-      if (r.today) today = r.today.status === "DONE" ? " · ✓ done today" : Date.parse(r.today.due_at) <= Date.now() && Date.now() < Date.parse(r.today.due_at) + r.duration_min * 60000 ? " · happening now" : "";
-      g.appendChild(el("div", "sub", `${humanMin(r.duration_min)} · ${r.days_label}${r.active ? "" : " · paused"}${today}`));
-      it.appendChild(g);
-      const sw = el("button", "switch"); sw.setAttribute("role", "switch"); sw.setAttribute("aria-checked", r.active); sw.setAttribute("aria-label", (r.active ? "Pause " : "Resume ") + r.title);
-      sw.onclick = async () => { sw.disabled = true; try { await patch(`/routines/${r.id}`, { active: !r.active }); await refreshAll(); } catch (e) { setStatus(e.message, true); sw.disabled = false; } };
-      it.appendChild(sw);
-      box.appendChild(it);
-    }
-  }
-
-  // ------------------------------------------------------------------ data
-  async function refreshPanels() {
-    try {
-      const [sched, tasks, routines] = await Promise.all([api("/schedule?date=" + S.day), api("/tasks"), api("/routines")]);
-      S.schedule = sched; S.tz = sched.timezone; S.tasks = tasks; S.routines = routines;
-      $("dayTitle").textContent = sched.title;
-      renderMap(); renderTasks(); renderRoutines();
-    } catch (e) { if (e.message !== "API key required") setStatus(e.message, true); }
-  }
-  async function refreshAll() { await poll(); await refreshPanels(); }
-  for (const [id, d] of [["dToday", "today"], ["dTomorrow", "tomorrow"]]) {
-    $(id).onclick = () => { S.day = d; S.scrolledFor = ""; $("dToday").setAttribute("aria-pressed", d === "today"); $("dTomorrow").setAttribute("aria-pressed", d === "tomorrow"); refreshPanels(); };
-  }
-  $("planBtn").onclick = async () => {
-    const b = $("planBtn"); b.disabled = true;
-    try { const r = await post("/plan", { date: S.day, commit: true }); toast(r.blocks.length ? `✨ Planned ${r.blocks.length} block(s)` + (r.deferred.length ? `\nCouldn't fit: ${r.deferred.map((d) => d.title).join(", ")}` : "") : "Nothing to plan\nAdd some tasks first."); await refreshAll(); }
-    catch (e) { toast("Couldn't plan\n" + e.message); }
-    b.disabled = false;
-  };
-
-  // ------------------------------------------------------------------ push notifications (bell)
-  const bell = $("bellBtn");
-  const pushSupported = "serviceWorker" in navigator && "PushManager" in window && window.isSecureContext;
-  const b64ToBytes = (b64) => { const raw = atob((b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(raw, (c) => c.charCodeAt(0)); };
-  function renderBell() {
-    const perm = "Notification" in window ? Notification.permission : "unsupported";
-    bell.textContent = perm === "denied" ? "🔕" : "🔔";
-    bell.style.borderColor = perm === "granted" ? "var(--routine)" : "";
-    bell.title = perm === "denied" ? "Notifications are blocked in your browser settings" : perm === "granted" ? (S.pushActive ? "Notifications on, even with the app closed. Click to test." : "Notifications on while the app is open. Click to test.") : "Turn on notifications";
-  }
-  async function savePush(sub) { const j = sub.toJSON(); await post("/push/subscribe", { endpoint: j.endpoint, keys: j.keys }); S.pushActive = true; }
-  bell.onclick = async () => {
-    unlockAudio();
-    if (!("Notification" in window)) { toast("This browser can't show system notifications\nYou'll still get in-app alerts."); return; }
-    try {
-      if (Notification.permission === "default") await Notification.requestPermission();
-      if (Notification.permission !== "granted") { renderBell(); toast("Notifications are blocked\nAllow them in your browser's site settings."); return; }
-      if (pushSupported) {
-        const reg = await navigator.serviceWorker.ready;
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) { const { public_key } = await api("/push/public-key"); sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(public_key) }); }
-        await savePush(sub);
-        const { sent } = await post("/push/test");
-        toast(sent ? "🔔 Notifications are on\nA test notification was sent." : "Notifications on\nBut the test didn't go through — check the server log.");
-      } else { new Notification("Notifications are on", { body: "You'll see reminders while the app is open.", icon: "/static/icon-192.png" }); }
-    } catch (e) { toast("Couldn't enable notifications\n" + e.message); }
-    renderBell();
-  };
-  if (pushSupported) {
-    navigator.serviceWorker.register("/sw.js").then(async (reg) => {
-      const sub = await reg.pushManager.getSubscription();
-      if (sub && Notification.permission === "granted") { try { await savePush(sub); } catch { /* retried next load */ } }
-      renderBell();
-    }).catch(renderBell);
-  }
-
-  // ------------------------------------------------------------------ start
-  paintDays(); paintKind(); renderSound(); renderBell();
-  const startView = location.hash.slice(1);
-  setView(["map", "chat", "tasks", "routines"].includes(startView) ? startView : "map");
-  matchMedia("(max-width: 1023px)").addEventListener("change", () => { setView(S.view); renderMap(); });
-  refreshAll();
-  setInterval(poll, 4000);                                   // new reminders -> toast + chime
-  setInterval(refreshPanels, 30000);                         // data
-  setInterval(() => { renderMap(); renderTasks(); }, 15000); // the live fill as time passes
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshAll(); });
-})();
-</script>
+<script type="module" src="/static/app.js"></script>
 </body>
 </html>

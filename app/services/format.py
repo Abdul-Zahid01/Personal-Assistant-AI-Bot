@@ -66,9 +66,10 @@ def plan_text(r: PlanResult, tz: ZoneInfo, *, committed: bool, header: str | Non
 
 
 def task_buttons(task_id: str) -> list[Button]:
-    return [
+    return [  # the first two also appear as buttons on phone/desktop notifications
         Button("✅ Done", f"done:{task_id}"),
-        Button("⏰ +30m", f"snz:{task_id}:30"),
+        Button("⏰ +10m", f"snz:{task_id}:10"),
+        Button("⏰ +1h", f"snz:{task_id}:60"),
         Button("➡️ Tomorrow", f"tmr:{task_id}"),
     ]
 

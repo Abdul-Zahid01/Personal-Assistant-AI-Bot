@@ -37,7 +37,7 @@ async def test_due_reminder_is_sent_once_with_buttons(container, sched, clock, n
     clock.set(at(10, 1))
     await sched.dispatch_reminders(clock.now)
     assert notifier.texts == ["⏰ Reminder: Call mom"]
-    assert [b.data.split(":")[0] for b in notifier.sent[0][1]] == ["done", "snz", "tmr"]
+    assert [b.data.split(":")[0] for b in notifier.sent[0][1]] == ["done", "snz", "snz", "tmr"]
     assert notifier.sent[0][1][0].data == f"done:{t.id}"
     await sched.dispatch_reminders(at(10, 2))
     assert len(notifier.sent) == 1  # never twice

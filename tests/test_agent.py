@@ -248,7 +248,7 @@ async def test_snooze_button_and_stale_buttons(container):
         t = await ctx.tasks.create(now=ctx.now, title="Call mom", kind="REMINDER", due_at=at(10))
         await s.commit()
     reply = await container.actions.run(f"snz:{t.id}:30")
-    assert "Snoozed" in reply.text and [b.data.split(":")[0] for b in reply.buttons] == ["done", "snz", "tmr"]
+    assert "Snoozed" in reply.text and [b.data.split(":")[0] for b in reply.buttons] == ["done", "snz", "snz", "tmr"]
     assert "Moved" in (await container.actions.run(f"tmr:{t.id}")).text
     assert "Done" in (await container.actions.run(f"done:{t.id}")).text
     assert "already done" in (await container.actions.run(f"done:{t.id}")).text

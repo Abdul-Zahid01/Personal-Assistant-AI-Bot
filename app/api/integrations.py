@@ -75,7 +75,7 @@ async def google_callback(code: str | None = None, state: str | None = None, err
     except (CalendarError, HTTPException) as exc:
         log.warning("Google OAuth callback failed: %s", exc)
         return page("Couldn't connect Google Calendar. Check the server logs and try again.", 400)
-    container.schedule_calendar_sync()
+    container.after_change()
     return page("Google Calendar connected ✅")
 
 

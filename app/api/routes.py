@@ -103,7 +103,7 @@ async def create_task(body: TaskIn, ctx: ToolContext = Depends(get_ctx), contain
         await ctx.session.commit()
     except TaskError as exc:
         raise HTTPException(400, str(exc)) from exc
-    container.schedule_calendar_sync()
+    container.after_change()
     return task_out(task)
 
 
@@ -124,7 +124,7 @@ async def update_task(task_id: str, body: TaskPatch, ctx: ToolContext = Depends(
         await ctx.session.commit()
     except TaskError as exc:
         raise HTTPException(400, str(exc)) from exc
-    container.schedule_calendar_sync()
+    container.after_change()
     return task_out(task)
 
 
@@ -137,18 +137,20 @@ async def complete_task(task_id: str, body: CompleteIn | None = None, ctx: ToolC
         await ctx.session.commit()
     except TaskError as exc:
         raise HTTPException(400, str(exc)) from exc
-    container.schedule_calendar_sync()
+    container.after_change()
     return {"task": task_out(result.task), "next_task": task_out(result.next_task) if result.next_task else None}
 
 
 @router.post("/tasks/{task_id}/snooze")
-async def snooze_task(task_id: str, body: SnoozeIn, ctx: ToolContext = Depends(get_ctx)) -> dict[str, Any]:
+async def snooze_task(task_id: str, body: SnoozeIn, ctx: ToolContext = Depends(get_ctx),
+                      container: Container = Depends(get_container)) -> dict[str, Any]:
     task = await _task_or_404(ctx, task_id)
     try:
         await ctx.tasks.snooze(task, ctx.now, body.minutes)
         await ctx.session.commit()
     except TaskError as exc:
         raise HTTPException(400, str(exc)) from exc
+    container.after_change()
     return task_out(task)
 
 
@@ -157,7 +159,7 @@ async def delete_task(task_id: str, ctx: ToolContext = Depends(get_ctx), contain
     task = await _task_or_404(ctx, task_id)
     await ctx.tasks.delete(task, ctx.now)
     await ctx.session.commit()
-    container.schedule_calendar_sync()
+    container.after_change()
     return {"status": "deleted", "id": task_id}
 
 
@@ -184,7 +186,7 @@ async def save_plan(body: PlanIn, ctx: ToolContext = Depends(get_ctx), container
         return _plan_out(await ctx.planning.build(day, ctx.now), ctx, committed=False)
     result = await ctx.planning.commit(day, ctx.now)
     await ctx.session.commit()
-    container.schedule_calendar_sync()
+    container.after_change()
     return _plan_out(result, ctx, committed=True)
 
 
@@ -225,7 +227,7 @@ async def review(ctx: ToolContext = Depends(get_ctx), container: Container = Dep
     day = ctx.now.astimezone(ctx.tz).date()
     result = await run_review(ctx.session, ctx.prefs, ctx.planning, day, ctx.now)
     await ctx.session.commit()
-    container.schedule_calendar_sync()
+    container.after_change()
     return {"text": result.text, "completed": len(result.completed), "carried_over": len(result.carried_over),
             "tomorrow": _plan_out(result.tomorrow, ctx, committed=False) if result.tomorrow else None}
 
@@ -253,22 +255,26 @@ async def put_preferences(body: dict[str, Any], ctx: ToolContext = Depends(get_c
 
 # ---------------------------------------------------------------------- start / pause
 @router.post("/tasks/{task_id}/start")
-async def start_task(task_id: str, ctx: ToolContext = Depends(get_ctx)) -> dict[str, Any]:
+async def start_task(task_id: str, ctx: ToolContext = Depends(get_ctx),
+                     container: Container = Depends(get_container)) -> dict[str, Any]:
     task = await _task_or_404(ctx, task_id)
     if task.status == "DONE":
         raise HTTPException(400, "That task is already done.")
     await ctx.tasks.update(task, ctx.now, {"status": "IN_PROGRESS"})
     await ctx.session.commit()
+    container.after_change()
     return task_out(task)
 
 
 @router.post("/tasks/{task_id}/pause")
-async def pause_task(task_id: str, ctx: ToolContext = Depends(get_ctx)) -> dict[str, Any]:
+async def pause_task(task_id: str, ctx: ToolContext = Depends(get_ctx),
+                     container: Container = Depends(get_container)) -> dict[str, Any]:
     task = await _task_or_404(ctx, task_id)
     if task.status == "DONE":
         raise HTTPException(400, "That task is already done.")
     await ctx.tasks.update(task, ctx.now, {"status": "TODO"})
     await ctx.session.commit()
+    container.after_change()
     return task_out(task)
 
 
@@ -295,7 +301,7 @@ async def create_routine(body: RoutineIn, ctx: ToolContext = Depends(get_ctx),
     except ValueError as exc:
         await ctx.session.rollback()
         raise HTTPException(400, str(exc)) from exc
-    container.schedule_calendar_sync()
+    container.after_change()
     return routine_out(r, await ctx.routines.todays_copy(r, ctx.now))
 
 
@@ -309,7 +315,7 @@ async def update_routine(routine_id: str, body: RoutinePatch, ctx: ToolContext =
     except ValueError as exc:
         await ctx.session.rollback()
         raise HTTPException(400, str(exc)) from exc
-    container.schedule_calendar_sync()
+    container.after_change()
     return routine_out(r, await ctx.routines.todays_copy(r, ctx.now))
 
 
@@ -319,5 +325,5 @@ async def delete_routine(routine_id: str, ctx: ToolContext = Depends(get_ctx),
     r = await _routine_or_404(ctx, routine_id)
     await ctx.routines.delete(r, ctx.now)
     await ctx.session.commit()
-    container.schedule_calendar_sync()
+    container.after_change()
     return {"status": "deleted", "id": routine_id}

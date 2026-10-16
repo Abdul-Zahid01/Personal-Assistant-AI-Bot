@@ -19,9 +19,15 @@ plan every evening.
 
 ### The app
 
-* **Day map** — your day as a timeline. Blocks fill up live as time passes, a red line marks "now", and the
-  **Now card** shows the current block or the task you started (`▶`) with % done and time left (amber when you run
-  over your estimate). Tap any block for Start / Done / +30m / Tomorrow / Skip today.
+* **Calendar** — Day (full 24 h), Week and Month views. **Drag on empty time** to add a task, event or reminder
+  (title, importance, notes, "notify me X min before"); **drag an item** to move it (across days in Week view) and
+  **drag its bottom edge** to resize. On phones: press-and-hold, then drag (or use **+ Add**). Items fill up live as time
+  passes, a red line marks "now", and the **Now card** shows the current block or the task you started (`▶`) with
+  % done and time left. Colours: 🔴 Urgent · 🟠 High · 🔵 Normal · ⚪ Low · 🟢 routine. Things you place yourself are
+  📌 pinned: ✨ Plan schedules other work around them. Keys: `D` `W` `M` views, `T` today, `←` `→`, `+` `−` zoom.
+* **Notifications** — delivered instantly over a live connection (no polling), as an in-app card with chime +
+  ✅ Done / ⏰ +10m / +1h / ➡️ Tomorrow, in the 🔔 notification centre (history, unread count), and as system
+  pop-ups even when the app is closed (turn on in 🔔).
 * **Routines** — gym, meals, calling mom… set once (time, duration, days of the week) and they appear on every
   day's map, notify you at their start time, and the planner schedules work around them. One-tap presets included.
   Also by chat: "gym every weekday at 6pm for an hour".
